@@ -75,7 +75,7 @@ def run_training(args, model, data, tokenizer):
         args=training_args,
         train_dataset=data['train'],
         compute_metrics=compute_metrics,
-        eval_dataset=data['test']
+        eval_dataset=data['validation']
     )
 
     trainer.train()
