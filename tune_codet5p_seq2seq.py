@@ -11,19 +11,25 @@ import os
 import pprint
 import argparse
 from datasets import load_dataset, load_from_disk
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, TrainingArguments, Trainer
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, Seq2SeqTrainingArguments, Seq2SeqTrainer
+import evaluate
+import numpy as np
+import codebleu
 
 
-def run_training(args, model, train_data):
+def run_training(args, model, data, tokenizer):
     print(f"Starting main loop")
 
-    training_args = TrainingArguments(
+    training_args = Seq2SeqTrainingArguments(
         report_to='tensorboard',
         output_dir=args.save_dir,
         overwrite_output_dir=False,
 
         do_train=True,
         save_strategy='epoch',
+
+        evaluation_strategy='epoch',
+        predict_with_generate=True,
 
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch_size_per_replica,
@@ -46,11 +52,30 @@ def run_training(args, model, train_data):
         fp16=args.fp16,
     )
 
-    print(train_data[0])
-    trainer = Trainer(
+    bleu_metric = evaluate.load("bleu")
+
+    def compute_metrics(eval_pred):
+        predictions, labels = eval_pred
+
+        # labels = [[data] for data in label_ids]
+
+        labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
+        decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+        decoded_predictions = tokenizer.batch_decode(predictions, skip_special_tokens=True)
+
+        # return metric.compute(predictions=decoded_predictions, references=decoded_labels)
+        return {
+            'bleu': bleu_metric.compute(predictions=decoded_predictions, references=decoded_labels),
+            'codebleu': codebleu.calc_codebleu(predictions=decoded_predictions, references=decoded_labels, lang="c_sharp")
+        }
+
+
+    trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
-        train_dataset=train_data,
+        train_dataset=data['train'],
+        compute_metrics=compute_metrics,
+        eval_dataset=data['test']
     )
 
     trainer.train()
@@ -64,15 +89,15 @@ def run_training(args, model, train_data):
 def load_tokenize_data(args):
     # Load and tokenize data
     if os.path.exists(args.cache_data):
-        train_data = load_from_disk(args.cache_data)
-        print(f'  ==> Loaded {len(train_data)} samples')
-        return train_data
+        processed_data = load_from_disk(args.cache_data)
+        print(f'  ==> Loaded {len(processed_data)} samples')
+        return processed_data
     else:
         # Example code to load and process code_x_glue_ct_code_to_text python dataset for code summarization task
         # datasets = load_dataset("code_x_glue_ct_code_to_text", 'python', split="train")
         
         # Instead use our dataset, the data is in the "data" folder
-        datasets = load_dataset("code_x_glue_cc_code_to_code_trans", split="train")
+        datasets = load_dataset("code_x_glue_cc_code_to_code_trans")
         tokenizer = AutoTokenizer.from_pretrained(args.load)
 
         def preprocess_function(examples):
@@ -94,17 +119,18 @@ def load_tokenize_data(args):
             ]
             return model_inputs
 
-        train_data = datasets.map(
+        print(datasets)
+        processed_data = datasets.map(
             preprocess_function,
             batched=True,
-            remove_columns=datasets.column_names,
+            remove_columns=datasets['train'].column_names,
             num_proc=64,
             load_from_cache_file=False,
         )
-        print(f'  ==> Loaded {len(train_data)} samples')
-        train_data.save_to_disk(args.cache_data)
+        print(f'  ==> Loaded {len(processed_data)} samples')
+        processed_data.save_to_disk(args.cache_data)
         print(f'  ==> Saved to {args.cache_data}')
-        return train_data
+        return processed_data
 
 
 def main(args):
@@ -117,17 +143,21 @@ def main(args):
 
     # Load and tokenize data using the tokenizer from `args.load`. If the data is already cached, load it from there.
     # You can customize this function to load your own data for any Seq2Seq LM tasks.
-    train_data = load_tokenize_data(args)
+    data = load_tokenize_data(args)
 
     if args.data_num != -1:
-        train_data = train_data.select([i for i in range(args.data_num)])
+        data['train'] = data['train'].select([i for i in range(args.data_num)])
+        data['test'] = data['test'].select([i for i in range(args.data_num)])
 
     # Load model from `args.load`
     # model = AutoModelForSeq2SeqLM.from_pretrained(args.load, trust_remote_code=True).to('cuda')
     model = AutoModelForSeq2SeqLM.from_pretrained(args.load, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(args.load)
+    model.config.decoder_start_token_id = tokenizer.bos_token_id
+    model.config.pad_token_id = tokenizer.pad_token_id
     print(f"  ==> Loaded model from {args.load}, model size {model.num_parameters()}")
 
-    run_training(args, model, train_data)
+    run_training(args, model, data, tokenizer)
 
 
 if __name__ == "__main__":
