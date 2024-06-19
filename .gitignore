@@ -1,3 +1,5 @@
 cache_data
 saved_models
 our_code_trans
+__pycache__
+to_remove

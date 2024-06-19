@@ -1,6 +1,20 @@
 # code-to-code
 We want to look into the domain of machine translation of programming languages. With this project, we aim to train a pre-trained model in for the translation of Java code and C# code. After that, we will build our own model from scratch (using PyTorch or TensorFlow). Both approaches will be evaluated at the end.
 
+## Dataset
+[`code_x_glue_cc_code_to_code_trans`](https://huggingface.co/datasets/google/code_x_glue_cc_code_to_code_trans)
+
+## Performance
+Java to C#:
+|     Method     |    BLEU    | Acc (100%) |  [CodeBLEU](https://github.com/microsoft/CodeXGLUE/blob/main/Code-Code/code-to-code-trans/CodeBLEU.MD) |  
+|    ----------  | :--------: | :-------:  | :-------: |
+| Naive copy     |   18.54    |    0.0     |      -    |
+| PBSMT      	 |   43.53    |   12.5     |   42.71   |
+| Transformer    |   55.84    |   33.0     |   63.74   |
+| Roborta (code) |   77.46    |   56.1     |   83.07   |
+| CodeBERT   	 | **79.92**  | **59.0**   | **85.10** |
+
+
 ## BLEU score
 BLEU score of pre-trained code-t5p
 ```json
