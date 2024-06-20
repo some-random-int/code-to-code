@@ -33,7 +33,7 @@ def load_tokenize_data(tokenizer, cache_path='./cache_data/code2code', max_sourc
         datasets = load_dataset("code_x_glue_cc_code_to_code_trans")
 
         def preprocess_function(examples):
-            source = examples["java"]
+            source = ['Translate to C#: ' +  example for example in examples["java"]]
             target = examples["cs"]
             
             model_inputs = tokenizer(source, max_length=max_source_len, padding="max_length", truncation=True)
