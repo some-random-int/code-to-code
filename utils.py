@@ -64,6 +64,8 @@ def get_comparison_values(metric):
         "Transformer": {"BLEU": 55.84, "Acc": 33.0, "CodeBLEU": 63.74},
         "Roborta (code)": {"BLEU": 77.46, "Acc": 56.1, "CodeBLEU": 83.07},
         "CodeBERT": {"BLEU": 79.92, "Acc": 59.0, "CodeBLEU": 85.10},
+        "Llama 3 8B zero-shot": {"BLEU": 49.07, "CodeBLEU": 35.79},
+        "CodeT5+ 220m w/o pretraining": {"BLEU": 0.0, "CodeBLEU": 20.49}
     }
     keys = list(data.keys())
     values = list(data.values())
