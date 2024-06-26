@@ -11,6 +11,8 @@ We evaluated three different versions of the CodeT5+ model:
 2. The CodeT5+ model trained from scratch with our dataset.
 3. The CodeT5+ model fine-tuned on our dataset.
 
+![Approach](./approach.svg)
+
 Among these, the fine-tuned version showed the best results. Additionally, we compared these results with other models[[2]](#2) evaluated on the same dataset, and the fine-tuned CodeT5+ model outperformed them, despite being the smallest in size at 220M parameters.
 
 ## Repository Contents
