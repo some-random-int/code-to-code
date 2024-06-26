@@ -24,3 +24,23 @@ BLEU score of 1 epoch optimied model
 ```json
 {'bleu': 0.3360167248253018, 'precisions': [0.48464619492656874, 0.35859269282814615, 0.2962962962962963, 0.24756606397774686], 'brevity_penalty': 1.0, 'length_ratio': 1.5936170212765957, 'translation_length': 749, 'reference_length': 470}
 ```
+
+
+## Approach
+```mermaid
+flowchart LR
+    C1(CodeT5+ 220M untrained) --> Training --> E1(CodeT5+ 220M self-trained)
+    C1 -..-> E1
+    C2(CodeT5+ 220M pre-trained) --> Training --> E2(CodeT5+ 220M fine-tuned)
+    C2 -..-> E2
+    C2 -..-> E3(CodeT5+ 220M pre-trained)
+    subgraph Training
+        A1[(Train)]
+        A3[(Validation)]
+    end
+    subgraph Evaluation
+        direction LR
+        Q2([CodeBLEU]) & Q1([BLEU]) -.-> A2[(Test)]
+    end
+    E1 & E2 & E3--> Evaluation --> Z[Scores]
+```
